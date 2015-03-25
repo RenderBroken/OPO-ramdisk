@@ -22,7 +22,17 @@ on charger
     write /sys/devices/system/cpu/cpu1/online 0
     write /sys/devices/system/cpu/cpu2/online 0
     write /sys/devices/system/cpu/cpu3/online 0
-    
+
+on early-init
+    setprop sys.perf.profile 2
+    write /sys/block/mmcblk0/queue/scheduler noop
+    write /sys/block/mmcblk0/bdi/read_ahead_kb 512
+    write /sys/module/msm_hotplug/min_cpus_online 4
+
+on property:init.svc.bootanim=running
+    setprop sys.perf.profile 2
+    write /sys/module/msm_hotplug/min_cpus_online 4
+
 on property:service.bootanim.exit=1
     # Enable Power modes
     write /sys/module/lpm_levels/enable_low_power/l2 4
@@ -63,10 +73,6 @@ on property:service.bootanim.exit=1
     chmod 664 /sys/devices/system/cpu/cpu2/online
     chmod 664 /sys/devices/system/cpu/cpu3/online
 
-on property:init.svc.bootanim=running
-    # Switch to NOOP while booting
-    write /sys/block/mmcblk0/queue/scheduler noop
-
 on property:init.svc.bootanim=stopped
     # Switch to ROW and balanced mode after boot for better UX
     write /sys/class/devfreq/qcom,cpubw.40/governor "cpubw_hwmon"
@@ -96,9 +102,6 @@ on property:init.svc.bootanim=stopped
     write /sys/devices/system/cpu/cpufreq/interactive/timer_slack 30000
 
     write /sys/kernel/msm_limiter/scaling_governor_0 impulse
-    write /sys/kernel/msm_limiter/scaling_governor_1 impulse
-    write /sys/kernel/msm_limiter/scaling_governor_2 impulse
-    write /sys/kernel/msm_limiter/scaling_governor_3 impulse
     write /sys/devices/system/cpu/cpufreq/impulse/above_hispeed_delay "20000 1400000:40000 1700000:20000"
     write /sys/devices/system/cpu/cpufreq/impulse/go_hispeed_load 95
     write /sys/devices/system/cpu/cpufreq/impulse/hispeed_freq 1190400
@@ -110,17 +113,10 @@ on property:init.svc.bootanim=stopped
     write /sys/devices/system/cpu/cpufreq/impulse/timer_slack 30000
     write /sys/devices/system/cpu/cpufreq/impulse/powersave_bias 1
 
-    write /sys/module/cpu_boost/parameters/boost_ms 20
-    write /sys/module/cpu_boost/parameters/sync_threshold 1728000
-    write /sys/module/cpu_boost/parameters/input_boost_freq 1497600
-    write /sys/module/cpu_boost/parameters/input_boost_ms 500
-    write /sys/module/cpu_boost/parameters/load_based_syncs 1
-
     write /sys/class/kgsl/kgsl-3d0/devfreq/governor msm-adreno-tz
     write /dev/cpuctl/apps/cpu.notify_on_migrate 1
 
-    write /sys/block/mmcblk0/queue/scheduler row
-    start mpdecision
+    setprop sys.perf.profile 1
 
 service render-post-boot /system/bin/sh /init.render.post_boot.sh
     class late_start
@@ -130,3 +126,64 @@ service render-post-boot /system/bin/sh /init.render.post_boot.sh
 
 on property:sys.boot_completed=1
     start render-post-boot
+
+# CM Performance Profiles
+
+# Powersave
+on property:sys.perf.profile=0
+    write /sys/class/devfreq/qcom,cpubw.36/governor "powersave"
+    write /sys/kernel/msm_limiter/scaling_governor_0 conservative
+    write /sys/kernel/msm_limiter/scaling_governor_1 conservative
+    write /sys/kernel/msm_limiter/scaling_governor_2 conservative
+    write /sys/kernel/msm_limiter/scaling_governor_3 conservative
+
+    write /sys/module/cpu_boost/parameters/cpu_boost 0
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+
+    write /sys/module/msm_hotplug/min_cpus_online 1
+
+# Balanced
+on property:sys.perf.profile=1
+    write /sys/class/devfreq/qcom,cpubw.36/governor "cpubw_hwmon"
+    write /sys/kernel/msm_limiter/scaling_governor_0 impulse
+    write /sys/kernel/msm_limiter/scaling_governor_1 impulse
+    write /sys/kernel/msm_limiter/scaling_governor_2 impulse
+    write /sys/kernel/msm_limiter/scaling_governor_3 impulse
+    write /sys/devices/system/cpu/cpufreq/impulse/above_hispeed_delay "20000 1400000:40000 1700000:20000"
+    write /sys/devices/system/cpu/cpufreq/impulse/go_hispeed_load 95
+    write /sys/devices/system/cpu/cpufreq/impulse/hispeed_freq 1190400
+    write /sys/devices/system/cpu/cpufreq/impulse/powersave_bias 1
+    write /sys/devices/system/cpu/cpufreq/impulse/io_is_busy 1
+    write /sys/devices/system/cpu/cpufreq/impulse/target_loads "85 1500000:90 1800000:70"
+    write /sys/devices/system/cpu/cpufreq/impulse/min_sample_time 40000
+    write /sys/devices/system/cpu/cpufreq/impulse/timer_rate 30000
+    write /sys/devices/system/cpu/cpufreq/impulse/max_freq_hysteresis 100000
+    write /sys/devices/system/cpu/cpufreq/impulse/timer_slack 30000
+
+    write /sys/module/cpu_boost/parameters/cpu_boost 1
+    write /sys/module/cpu_boost/parameters/boost_ms 20
+    write /sys/module/cpu_boost/parameters/sync_threshold 1420800
+    write /sys/module/cpu_boost/parameters/input_boost_freq 1190400
+    write /sys/module/cpu_boost/parameters/input_boost_ms 500
+    
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+
+    write /sys/module/msm_hotplug/min_cpus_online 2
+
+# High performance
+on property:sys.perf.profile=2
+    write /sys/class/devfreq/qcom,cpubw.36/governor "performance"
+    write /sys/kernel/msm_limiter/scaling_governor_0 performance
+    write /sys/kernel/msm_limiter/scaling_governor_1 performance
+    write /sys/kernel/msm_limiter/scaling_governor_2 performance
+    write /sys/kernel/msm_limiter/scaling_governor_3 performance
+
+    write /sys/module/cpu_boost/parameters/cpu_boost 1
+    write /sys/module/cpu_boost/parameters/boost_ms 20
+    write /sys/module/cpu_boost/parameters/sync_threshold 1728000
+    write /sys/module/cpu_boost/parameters/input_boost_freq 1497600
+    write /sys/module/cpu_boost/parameters/input_boost_ms 500
+    
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "performance"
+
+    write /sys/module/msm_hotplug/min_cpus_online 2
