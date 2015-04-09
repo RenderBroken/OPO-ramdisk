@@ -568,8 +568,8 @@
 
 /sys/devices/virtual/graphics/fb0/cabc             u:object_r:display_sysfs:s0
 /sys/devices/virtual/graphics/fb0/color_enhance    u:object_r:display_sysfs:s0
-/sys/devices/virtual/graphics/fb0/panel_calibration u:object_r:display_sysfs:s0
-/sys/devices/virtual/graphics/fb0/sre               u:object_r:display_sysfs:s0
+/sys/devices/virtual/graphics/fb0/sre              u:object_r:display_sysfs:s0
+/sys/devices/virtual/graphics/fb0/rgb              u:object_r:display_sysfs:s0
 
 /sys/devices/virtual/timed_output/vibrator/vtg_level   u:object_r:vibeamp_sysfs:s0
 
@@ -590,6 +590,7 @@
 /system/bin/sysinit       u:object_r:sysinit_exec:s0
 
 /system/etc/init.d/90userinit           u:object_r:userinit_exec:s0
+/data/local/userinit.sh                 u:object_r:userinit_data_exec:s0
 
 # For minivold in recovery
 /sbin/minivold            u:object_r:vold_exec:s0
